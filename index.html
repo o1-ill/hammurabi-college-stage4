@@ -44,6 +44,16 @@
     .dot.green { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.25); }
     .dot.yellow{ background: #eab308; box-shadow: 0 0 0 3px rgba(234,179,8,0.25); }
     .dot.red   { background: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.25); }
+    
+.status-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-circle.green { background-color: #16a34a; }
+.status-circle.yellow { background-color: #eab308; }
+.status-circle.red { background-color: #dc2626; }
 
     /* توهج الاسم الجديد */
     .highlight-flash{
@@ -535,37 +545,52 @@ let firebaseReady = true;
       return "yellow";
     }
 
-    function drawStatus(){
-      const grid = $("#statusGrid");
-      grid.innerHTML = "";
-      for (const g of GROUPS){
-        const card = document.createElement("div");
-        card.className = "glass p-4";
-        const title = document.createElement("div");
-        title.className = "text-lg font-bold mb-3";
-        title.textContent = `الكروب ${g}`;
-        card.appendChild(title);
+   function drawStatus() {
+  const grid = $("#statusGrid");
+  grid.innerHTML = "";
 
-        // جدول صغير
-        const table = document.createElement("div");
-        table.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3";
-        for (let s=1; s<=SUB_COUNT; s++){
-          const c = countSub(g, s);
-          const cell = document.createElement("div");
-          cell.className = "p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between";
-          const left = document.createElement("div");
-          left.innerHTML = `<div class="text-sm text-gray-300">Subgroup ${s}</div>
-                            <div class="text-xs text-gray-400">${c} / ${SUB_LIMIT}</div>`;
-          const dot = document.createElement("span");
-          dot.className = `dot ${statusDotClass(c)}`;
-          cell.appendChild(left);
-          cell.appendChild(dot);
-          table.appendChild(cell);
-        }
-        card.appendChild(table);
-        grid.appendChild(card);
-      }
+  for (const g of GROUPS) {
+    const groupCard = document.createElement("div");
+    groupCard.className = "group-card bg-slate-800 p-4 rounded-xl mb-6";
+
+    const title = document.createElement("h3");
+    title.className = "text-lg font-bold text-yellow-300 mb-3";
+    title.textContent = `الكروب ${g}`;
+    groupCard.appendChild(title);
+
+    const subGrid = document.createElement("div");
+    subGrid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4";
+
+    for (let s = 1; s <= SUB_COUNT; s++) {
+      const c = countSub(g, s);
+
+      const subCard = document.createElement("div");
+      subCard.className =
+        "subgroup-card bg-slate-700 rounded-lg p-3 flex flex-col items-center justify-center";
+
+      const name = document.createElement("div");
+      name.className = "font-semibold text-sm text-white";
+      name.textContent = `Subgroup ${s}`;
+
+      const count = document.createElement("div");
+      count.className = "text-xs text-gray-300 mt-1";
+      count.textContent = `${c} / ${SUB_LIMIT}`;
+
+      const dot = document.createElement("span");
+      dot.className = `status-circle ${statusDotClass(c)} mt-2`;
+
+      subCard.appendChild(name);
+      subCard.appendChild(count);
+      subCard.appendChild(dot);
+
+      subGrid.appendChild(subCard);
     }
+
+    groupCard.appendChild(subGrid);
+    grid.appendChild(groupCard);
+  }
+}
+
 
     // =============== تبويبات القوائم والرسم ===============
     function drawLists(){
