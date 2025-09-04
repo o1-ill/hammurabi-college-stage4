@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تقسيم طلاب المرحلة الرابعة</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- أيقونات -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --card: #0f172a;       /* slate-900 */
+      --muted: #111827;      /* gray-900 */
+      --glass: rgba(255,255,255,0.06);
+      --ring: rgba(250,204,21,0.5);
+    }
+    html, body { height: 100%; background: #0b1020; }
+    body { font-family: 'Cairo', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    /* بطاقات زجاجية */
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    .pulse-ring {
+      box-shadow: 0 0 0 0 var(--ring);
+      animation: pulseRing 2s infinite;
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 var(--ring); }
+      70% { box-shadow: 0 0 0 12px rgba(250,204,21,0); }
+      100% { box-shadow: 0 0 0 0 rgba(250,204,21,0); }
+    }
+    /* دوائر الحالة */
+    .dot { width: 12px; height: 12px; border-radius: 9999px; display: inline-block; }
+    .dot.green { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.25); }
+    .dot.yellow{ background: #eab308; box-shadow: 0 0 0 3px rgba(234,179,8,0.25); }
+    .dot.red   { background: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.25); }
+
+    /* توهج الاسم الجديد */
+    .highlight-flash{
+      animation: highlightFlash 3s ease-in-out 1;
+    }
+    @keyframes highlightFlash{
+      0% { background: rgba(250,204,21,0.25); }
+      100%{ background: transparent; }
+    }
+
+    /* توست */
+    .toast{
+      position: fixed; inset-inline-start: 50%; transform: translateX(-50%);
+      top: 18px; z-index: 9999; min-width: 320px;
+      padding: 14px 18px; border-radius: 14px;
+      background: #022c22; color: #d1fae5; border: 1px solid rgba(16,185,129,0.35);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      display: none;
+    }
+    .toast.show{ display: block; animation: slideDown .25s ease-out; }
+    @keyframes slideDown { from { opacity: 0; transform: translate(-50%, -10px);} to { opacity: 1; transform: translate(-50%, 0);} }
+
+    /* مودال */
+    .modal-backdrop{
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; z-index: 50;
+    }
+    .modal-backdrop.show{ display: block; }
+    .modal{
+      position: fixed; inset-inline: 0; top: 10%; margin-inline: auto; width: 94%; max-width: 640px; z-index: 60;
+      display: none;
+    }
+    .modal.show{ display: block; animation: pop .18s ease-out; }
+    @keyframes pop { from { transform: scale(.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* جدول الحالة */
+    .status-grid{
+      display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px;
+    }
+    @media (max-width: 1024px){ .status-grid{ grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    @media (max-width: 640px){ .status-grid{ grid-template-columns: repeat(1,minmax(0,1fr)); } }
+
+    /* بطاقات الأسماء */
+    .name-card{
+      border: 1px dashed rgba(255,255,255,0.12);
+      transition: transform .12s ease, border-color .2s ease, background .2s ease;
+    }
+    .name-card:hover{ transform: translateY(-2px); border-color: rgba(250,204,21,0.45); }
+  </style>
+</head>
+
+<body class="text-gray-200 selection:bg-yellow-300 selection:text-black">
+
+  <!-- Toast -->
+  <div id="toast" class="toast text-sm">
+    <div class="flex items-center gap-3">
+      <span id="toastIcon" class="inline-block text-xl">✅</span>
+      <div class="flex-1">
+        <div id="toastTitle" class="font-bold">تم</div>
+        <div id="toastMsg" class="text-emerald-200/90">تم التسجيل بنجاح</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- خلفية ناعمة -->
+  <div class="absolute inset-0 -z-10">
+    <div class="absolute -top-20 -start-20 w-80 h-80 rounded-full blur-3xl opacity-20" style="background: radial-gradient(circle at center, #facc15, transparent 60%);"></div>
+    <div class="absolute bottom-0 end-0 w-96 h-96 rounded-full blur-3xl opacity-10" style="background: radial-gradient(circle at center, #38bdf8, transparent 60%);"></div>
+  </div>
+
+  <!-- رأس الصفحة -->
+  <header class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
+    <div class="glass p-6 md:p-8">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h1 class="text-3xl md:text-4xl font-extrabold text-yellow-300 tracking-tight">
+            تقسيم طلاب المرحلة الرابعة
+          </h1>
+          <p class="text-gray-300/80 mt-2 text-sm md:text-base">
+            اختر الكروب والـ Subgroup، والحد الأقصى <span class="font-semibold text-yellow-200">10 طلاب</span> لكل Subgroup.
+          </p>
+        </div>
+        <!-- زر وضع الإدارة -->
+        <button id="adminBtn" class="px-4 py-2 rounded-xl bg-yellow-400/10 text-yellow-300 border border-yellow-300/30 hover:bg-yellow-400/20 transition">
+          وضع الإدارة
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- محتوى -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-28">
+    <!-- جدول الحالة (A1/A2/B1/B2) -->
+    <section class="mt-6">
+      <div class="glass p-5 md:p-7">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl md:text-2xl font-bold text-white">حالة الـ Subgroups</h2>
+          <div class="flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-2"><span class="dot green"></span> فارغ</div>
+            <div class="flex items-center gap-2"><span class="dot yellow"></span> غير ممتلئ</div>
+            <div class="flex items-center gap-2"><span class="dot red"></span> ممتلئ</div>
+          </div>
+        </div>
+
+        <!-- شبكة البطاقات -->
+        <div id="statusGrid" class="status-grid">
+          <!-- تُملأ ديناميكياً -->
+        </div>
+      </div>
+    </section>
+
+    <!-- نموذج الإضافة -->
+    <section class="mt-6">
+      <div class="glass p-5 md:p-7">
+        <h2 class="text-xl md:text-2xl font-bold text-white mb-4">إضافة طالب</h2>
+        <form id="addForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <!-- الاسم الثلاثي -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm text-gray-300">الاسم الثلاثي</label>
+            <input id="fullName" type="text" required placeholder="اكتب اسمك الثلاثي"
+                   class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50">
+          </div>
+
+          <!-- الرمز السري (اختياري) -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm text-gray-300">رمز سري (اختياري)</label>
+            <input id="secret" type="password" placeholder="(اختياري) ضع رمزًا لحماية اسمك"
+                   class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50">
+          </div>
+
+          <!-- Group -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm text-gray-300">Groub</label>
+            <select id="groupSelect" class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50" required>
+              <option value="" disabled selected>اختر الكروب</option>
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+            </select>
+          </div>
+
+          <!-- Subgroup -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm text-gray-300">Subgroup</label>
+            <select id="subgroupSelect" class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50" required>
+              <option value="" disabled selected>اختر الـ Subgroup</option>
+              <option value="1">Subgroup 1</option>
+              <option value="2">Subgroup 2</option>
+              <option value="3">Subgroup 3</option>
+              <option value="4">Subgroup 4</option>
+              <option value="5">Subgroup 5</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2 flex items-center justify-between gap-3">
+            <p class="text-sm text-gray-400">يمكنك معاينة أسماء جميع الكروبات في الأسفل.</p>
+            <button type="submit" class="px-5 py-3 rounded-xl bg-yellow-400 text-black font-bold hover:bg-yellow-300 transition">
+              إضافة الاسم
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- لوائح الأسماء -->
+    <section class="mt-6">
+      <div class="glass p-5 md:p-7">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl md:text-2xl font-bold text-white">أسماء الطلاب لكل كروب</h2>
+          <div class="text-sm text-gray-400">اضغط على رمز ✏️ لتعديل اسمك</div>
+        </div>
+
+        <!-- تبويبات المجموعات -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button data-tab="A1" class="tab-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10">A1</button>
+          <button data-tab="A2" class="tab-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10">A2</button>
+          <button data-tab="B1" class="tab-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10">B1</button>
+          <button data-tab="B2" class="tab-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10">B2</button>
+        </div>
+
+        <!-- لوائح لكل كروب -->
+        <div class="space-y-8">
+          <div id="list-A1"></div>
+          <div id="list-A2" class="hidden"></div>
+          <div id="list-B1" class="hidden"></div>
+          <div id="list-B2" class="hidden"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- فوتر -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+    <div class="text-center text-xs text-gray-500">
+      تم التصميم بعناية • يدعم المزامنة عبر Firebase أو التخزين المحلي تلقائيًا
+    </div>
+  </footer>
+  <!-- Backdrop للمودالات -->
+  <div id="backdrop" class="modal-backdrop"></div>
+
+  <!-- مودال: تعديل/حذف الطالب -->
+  <div id="editModal" class="modal">
+    <div class="glass p-5 md:p-7">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xl font-bold">تعديل الطالب</h3>
+        <button data-close="editModal" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20">✕</button>
+      </div>
+
+      <div id="passwordGate" class="space-y-4">
+        <p class="text-sm text-gray-300">هذا الاسم محمي برمز. أدخل الرمز للمتابعة:</p>
+        <input id="editPassword" type="password" placeholder="اكتب الرمز السري"
+               class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50">
+        <div class="flex justify-end gap-2">
+          <button id="editPasswordCheck" class="px-4 py-2 rounded-xl bg-yellow-400 text-black font-bold hover:bg-yellow-300">تحقق</button>
+        </div>
+      </div>
+
+      <div id="editFormWrap" class="space-y-4 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm text-gray-300">الاسم</label>
+            <input id="editName" type="text" class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm text-gray-300">رمز جديد (اختياري)</label>
+            <input id="editNewSecret" type="password" class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50" placeholder="اتركه فارغًا للإبقاء على القديم">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <button id="deleteStudent" class="px-4 py-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-white">حذف</button>
+          <div class="flex items-center gap-2">
+            <button data-close="editModal" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">إلغاء</button>
+            <button id="saveEdit" class="px-4 py-2 rounded-xl bg-yellow-400 text-black font-bold hover:bg-yellow-300">حفظ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال: وضع الإدارة -->
+  <div id="adminModal" class="modal">
+    <div class="glass p-5 md:p-7">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xl font-bold">وضع الإدارة</h3>
+        <button data-close="adminModal" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20">✕</button>
+      </div>
+
+      <div id="adminGate" class="space-y-4">
+        <p class="text-sm text-gray-300">أدخل الرمز الخاص بالإدارة:</p>
+        <input id="adminCode" type="password" placeholder="اكتب رمز الإدارة"
+               class="w-full px-4 py-3 rounded-xl bg-slate-900/70 border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-300/50">
+        <div class="flex justify-end gap-2">
+          <button id="adminCheck" class="px-4 py-2 rounded-xl bg-yellow-400 text-black font-bold hover:bg-yellow-300">دخول</button>
+        </div>
+      </div>
+
+      <div id="adminPanel" class="space-y-5 hidden">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-sm text-emerald-300">
+            <span class="dot green"></span> وضع الإدارة مُفعّل — يمكنك التعديل والحذف بلا رموز.
+          </div>
+          <button id="adminExit" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">إيقاف الوضع</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button id="exportBtn" class="px-4 py-3 rounded-xl bg-blue-500/80 hover:bg-blue-500 text-white">تصدير إلى Excel</button>
+          <label class="px-4 py-3 rounded-xl bg-purple-500/80 hover:bg-purple-500 text-white text-center cursor-pointer">
+            استيراد من Excel
+            <input id="importInput" type="file" accept=".xlsx,.xls" class="hidden">
+          </label>
+        </div>
+
+        <div class="text-xs text-gray-400">
+          ملاحظة: التصدير والاستيراد يؤثران على جميع البيانات.
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Firebase (Modular v10) -->
+  <script type="module">
+    // محاولة تحميل Firebase من CDN
+  </script>
+  <script type="module">
+    // =============== Firebase إعداد ===============
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update, remove, get, child } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+
+    // ضع إعداداتك هنا:
+    const firebaseConfig = {
+      apiKey: "REPLACE_ME",
+      authDomain: "REPLACE_ME.firebaseapp.com",
+      databaseURL: "https://REPLACE_ME-default-rtdb.firebaseio.com",
+      projectId: "REPLACE_ME",
+      storageBucket: "REPLACE_ME.appspot.com",
+      messagingSenderId: "REPLACE_ME",
+      appId: "REPLACE_ME"
+    };
+
+    let app, db, firebaseReady = false;
+
+    try {
+      // إذا القيم ما تبدلت، اعتبر Firebase غير مُفعّل
+      const looksConfigured = (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("REPLACE_ME"));
+      if (looksConfigured) {
+        app = initializeApp(firebaseConfig);
+        db = getDatabase(app);
+        firebaseReady = true;
+        console.log("Firebase ready ✅");
+      } else {
+        console.warn("Firebase غير مهيأ. سيتم استخدام LocalStorage.");
+      }
+    } catch (e) {
+      console.warn("تعذر تهيئة Firebase. سيتم استخدام LocalStorage.", e);
+      firebaseReady = false;
+    }
+
+    // =============== ثابتات وهيكل البيانات ===============
+    const GROUPS = ["A1","A2","B1","B2"];
+    const SUB_COUNT = 5;
+    const SUB_LIMIT = 10;
+    const ADMIN_SECRET = "qfvlu10178";
+
+    // الشكل العام للبيانات:
+    // students: {
+    //   A1: { "1": { id: "...", name: "...", passHash?: "..." }, "2": {...}, ... },
+    //   A2: {...}, B1: {...}, B2: {...}
+    // }
+    // كل Subgroup يحتوي مصفوفة/كائن عناصر (id->record). نستخدم كائن لتسهيل التحرير.
+
+    // =============== أدوات مساعدة ===============
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    function showToast(title="تم", msg="تمت العملية بنجاح", icon="✅"){
+      const t = $("#toast");
+      $("#toastTitle").textContent = title;
+      $("#toastMsg").textContent = msg;
+      $("#toastIcon").textContent = icon;
+      t.classList.add("show");
+      setTimeout(()=> t.classList.remove("show"), 3000);
+    }
+
+    function uid(){
+      return 'id_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+
+    async function sha256(text){
+      const enc = new TextEncoder().encode(text);
+      const hash = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+
+    function subgroupKey(group, subIdx){
+      return `${group}/${subIdx}`;
+    }
+
+    // =============== طبقة تخزين هجينة ===============
+    const Storage = {
+      // القراءة الكاملة
+      async readAll(){
+        if (firebaseReady){
+          const snap = await get(ref(db, "students"));
+          if (snap.exists()){
+            return snap.val();
+          }
+          return {}; // فارغ
+        } else {
+          const raw = localStorage.getItem("students");
+          return raw ? JSON.parse(raw) : {};
+        }
+      },
+      // كتابة مسار محدد
+      async writePath(path, value){
+        if (firebaseReady){
+          await set(ref(db, "students/" + path), value);
+        } else {
+          const all = await this.readAll();
+          const parts = path.split("/");
+          let node = all;
+          for (let i=0;i<parts.length-1;i++){
+            node[parts[i]] = node[parts[i]] || {};
+            node = node[parts[i]];
+          }
+          node[parts[parts.length-1]] = value;
+          localStorage.setItem("students", JSON.stringify(all));
+        }
+      },
+      // تحديث
+      async patch(path, value){
+        if (firebaseReady){
+          await update(ref(db, "students/" + path), value);
+        } else {
+          const all = await this.readAll();
+          const parts = path.split("/");
+          let node = all;
+          for (let i=0;i<parts.length-1;i++){
+            node[parts[i]] = node[parts[i]] || {};
+            node = node[parts[i]];
+          }
+          node[parts[parts.length-1]] = { ...(node[parts[parts.length-1]]||{}), ...value };
+          localStorage.setItem("students", JSON.stringify(all));
+        }
+      },
+      // حذف
+      async del(path){
+        if (firebaseReady){
+          await remove(ref(db, "students/" + path));
+        } else {
+          const all = await this.readAll();
+          const parts = path.split("/");
+          let node = all;
+          for (let i=0;i<parts.length-1;i++){
+            node = node?.[parts[i]];
+            if (!node) break;
+          }
+          if (node && node[parts[parts.length-1]]){
+            delete node[parts[parts.length-1]];
+            localStorage.setItem("students", JSON.stringify(all));
+          }
+        }
+      },
+      // مراقبة لحظية
+      onChange(callback){
+        if (firebaseReady){
+          onValue(ref(db, "students"), (snap)=>{
+            callback(snap.val() || {});
+          });
+        } else {
+          // محاكاة بث محلي
+          callback(JSON.parse(localStorage.getItem("students")||"{}"));
+          window.addEventListener("storage", (e)=>{
+            if (e.key === "students"){
+              callback(JSON.parse(e.newValue||"{}"));
+            }
+          });
+        }
+      }
+    };
+
+    // =============== واجهة التزامن ===============
+    // سنحافظ على نسخة حالية في الذاكرة ونُعيد رسم الواجهة عند التغيير.
+    let STATE = {
+      students: {},   // نفس الهيكل
+      admin: false,
+      recentHighlightId: null, // لإضاءة الاسم المُضاف
+      editTarget: null         // { group, sub, id }
+    };
+
+    function ensureStructure(obj){
+      for (const g of GROUPS){
+        obj[g] = obj[g] || {};
+        for (let s=1; s<=SUB_COUNT; s++){
+          const k = String(s);
+          obj[g][k] = obj[g][k] || {};
+        }
+      }
+      return obj;
+    }
+
+    // تحميل أولي + مراقبة
+    async function bootSync(){
+      const first = await Storage.readAll();
+      STATE.students = ensureStructure(first || {});
+      drawAll();
+
+      Storage.onChange((data)=>{
+        STATE.students = ensureStructure(data||{});
+        drawAll();
+      });
+    }
+
+    // تشغيل
+    bootSync();
+
+    // =============== بناء واجهة جدول الحالة ===============
+    function countSub(group, sub){
+      const theSub = STATE.students?.[group]?.[String(sub)] || {};
+      return Object.keys(theSub).length;
+    }
+    function statusDotClass(c){
+      if (c === 0) return "green";
+      if (c >= SUB_LIMIT) return "red";
+      return "yellow";
+    }
+
+    function drawStatus(){
+      const grid = $("#statusGrid");
+      grid.innerHTML = "";
+      for (const g of GROUPS){
+        const card = document.createElement("div");
+        card.className = "glass p-4";
+        const title = document.createElement("div");
+        title.className = "text-lg font-bold mb-3";
+        title.textContent = `الكروب ${g}`;
+        card.appendChild(title);
+
+        // جدول صغير
+        const table = document.createElement("div");
+        table.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3";
+        for (let s=1; s<=SUB_COUNT; s++){
+          const c = countSub(g, s);
+          const cell = document.createElement("div");
+          cell.className = "p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between";
+          const left = document.createElement("div");
+          left.innerHTML = `<div class="text-sm text-gray-300">Subgroup ${s}</div>
+                            <div class="text-xs text-gray-400">${c} / ${SUB_LIMIT}</div>`;
+          const dot = document.createElement("span");
+          dot.className = `dot ${statusDotClass(c)}`;
+          cell.appendChild(left);
+          cell.appendChild(dot);
+          table.appendChild(cell);
+        }
+        card.appendChild(table);
+        grid.appendChild(card);
+      }
+    }
+
+    // =============== تبويبات القوائم والرسم ===============
+    function drawLists(){
+      for (const g of GROUPS){
+        const container = document.getElementById(`list-${g}`);
+        container.innerHTML = "";
+        for (let s=1; s<=SUB_COUNT; s++){
+          const wrap = document.createElement("div");
+          wrap.className = "space-y-3";
+          const head = document.createElement("div");
+          head.className = "flex items-center justify-between mt-2";
+          head.innerHTML = `
+            <div class="text-lg font-bold">Subgroup ${s} <span class="text-sm text-gray-400">(${countSub(g,s)}/${SUB_LIMIT})</span></div>
+          `;
+          wrap.appendChild(head);
+
+          const list = document.createElement("div");
+          list.className = "grid md:grid-cols-2 lg:grid-cols-3 gap-3";
+
+          const entries = Object.entries(STATE.students[g][String(s)]||{});
+          // ترتيب أبجدي بسيط
+          entries.sort((a,b)=> a[1].name.localeCompare(b[1].name, 'ar'));
+
+          for (const [id, rec] of entries){
+            const card = document.createElement("div");
+            card.className = "name-card p-3 rounded-xl bg-white/5 flex items-center justify-between";
+            card.dataset.id = id;
+
+            const left = document.createElement("div");
+            left.className = "flex items-center gap-2";
+            left.innerHTML = `<span class="text-xl">👤</span><span class="text-sm md:text-base">${rec.name}</span>`;
+
+            const right = document.createElement("div");
+            const btn = document.createElement("button");
+            btn.className = "px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm";
+            btn.textContent = "✏️";
+            btn.addEventListener("click", ()=> openEditModal(g, String(s), id, !!rec.passHash));
+
+            right.appendChild(btn);
+            card.appendChild(left);
+            card.appendChild(right);
+
+            // توهج لو هذا هو المُضاف حديثًا
+            if (STATE.recentHighlightId === id){
+              card.classList.add("highlight-flash");
+              setTimeout(()=> card.classList.remove("highlight-flash"), 3000);
+            }
+
+            list.appendChild(card);
+          }
+
+          wrap.appendChild(list);
+          container.appendChild(wrap);
+        }
+      }
+    }
+
+    function drawAll(){
+      drawStatus();
+      drawLists();
+    }
+
+    // =============== تبديل التبويبات ===============
+    $$(".tab-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const tab = btn.dataset.tab;
+        ["A1","A2","B1","B2"].forEach(g=>{
+          document.getElementById(`list-${g}`).classList.toggle("hidden", g!==tab);
+        });
+        $$(".tab-btn").forEach(b=> b.classList.remove("pulse-ring"));
+        btn.classList.add("pulse-ring");
+      });
+    });
+
+    // =============== إضافة طالب ===============
+    $("#addForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const name = $("#fullName").value.trim();
+      const pwd = $("#secret").value;
+      const grp = $("#groupSelect").value;
+      const sgrp = $("#subgroupSelect").value;
+
+      if (!name || !grp || !sgrp){
+        showToast("خطأ", "يرجى تعبئة الحقول المطلوبة", "⚠️");
+        return;
+      }
+      // تحقق السعة
+      const currentCount = countSub(grp, sgrp);
+      if (currentCount >= SUB_LIMIT){
+        showToast("ممتلئ", "هذا الـ Subgroup ممتلئ. اختر غيره.", "⛔");
+        return;
+      }
+
+      const id = uid();
+      const rec = { id, name };
+      if (pwd && pwd.length > 0){
+        rec.passHash = await sha256(pwd);
+      }
+
+      // كتابة
+      await Storage.patch(subgroupKey(grp, sgrp) + "/" + id, rec);
+
+      // تنظيف
+      $("#fullName").value = "";
+      $("#secret").value = "";
+      $("#groupSelect").value = "";
+      $("#subgroupSelect").value = "";
+
+      STATE.recentHighlightId = id;
+      showToast("تم التسجيل", "تم التسجيل بنجاح ✅", "🎉");
+      drawAll();
+    });
+
+    // =============== المودالات ===============
+    const MODALS = {
+      open(id){ $("#backdrop").classList.add("show"); $("#"+id).classList.add("show"); },
+      close(id){ $("#backdrop").classList.remove("show"); $("#"+id).classList.remove("show"); }
+    };
+    $$("[data-close]").forEach(btn=>{
+      btn.addEventListener("click", ()=> MODALS.close(btn.getAttribute("data-close")));
+    });
+    $("#backdrop").addEventListener("click", ()=>{
+      ["editModal","adminModal"].forEach(MODALS.close);
+    });
+
+    // =============== تحرير/حذف ===============
+    function openEditModal(group, sub, id, protectedByPass){
+      STATE.editTarget = { group: group, sub: sub, id: id };
+      // إذا الإدارة مفعلة، تجاوز كلمة المرور
+      if (STATE.admin){
+        $("#passwordGate").classList.add("hidden");
+        $("#editFormWrap").classList.remove("hidden");
+      } else {
+        // إن كان محمي، اطلب الرمز
+        if (protectedByPass){
+          $("#passwordGate").classList.remove("hidden");
+          $("#editFormWrap").classList.add("hidden");
+        } else {
+          $("#passwordGate").classList.add("hidden");
+          $("#editFormWrap").classList.remove("hidden");
+        }
+      }
+      // اضبط الاسم الحالي
+      const rec = STATE.students[group][String(sub)][id];
+      $("#editName").value = rec?.name || "";
+      $("#editNewSecret").value = "";
+      $("#editPassword").value = "";
+
+      MODALS.open("editModal");
+    }
+
+    $("#editPasswordCheck").addEventListener("click", async ()=>{
+      const { group, sub, id } = STATE.editTarget || {};
+      if (!group) return;
+      const rec = STATE.students[group][String(sub)][id];
+      const input = $("#editPassword").value;
+      const ok = (rec?.passHash) ? (await sha256(input) === rec.passHash) : true;
+      if (!ok){
+        showToast("خطأ", "الرمز غير صحيح", "❌");
+        return;
+      }
+      $("#passwordGate").classList.add("hidden");
+      $("#editFormWrap").classList.remove("hidden");
+    });
+
+    $("#saveEdit").addEventListener("click", async ()=>{
+      const { group, sub, id } = STATE.editTarget || {};
+      if (!group) return;
+      const newName = $("#editName").value.trim();
+      const newPwd  = $("#editNewSecret").value;
+      if (!newName){
+        showToast("خطأ", "الاسم لا يمكن أن يكون فارغًا", "⚠️");
+        return;
+      }
+      const patch = { name: newName };
+      if (newPwd && newPwd.length > 0){
+        patch.passHash = await sha256(newPwd);
+      }
+      await Storage.patch(subgroupKey(group, sub) + "/" + id, patch);
+      MODALS.close("editModal");
+      showToast("تم الحفظ", "تم تحديث البيانات", "💾");
+      drawAll();
+    });
+
+    $("#deleteStudent").addEventListener("click", async ()=>{
+      const { group, sub, id } = STATE.editTarget || {};
+      if (!group) return;
+      await Storage.del(subgroupKey(group, sub) + "/" + id);
+      MODALS.close("editModal");
+      showToast("تم الحذف", "تم حذف الاسم", "🗑️");
+      drawAll();
+    });
+
+    // =============== وضع الإدارة ===============
+    $("#adminBtn").addEventListener("click", ()=> {
+      $("#adminCode").value = "";
+      $("#adminGate").classList.remove("hidden");
+      $("#adminPanel").classList.add("hidden");
+      MODALS.open("adminModal");
+    });
+
+    $("#adminCheck").addEventListener("click", ()=>{
+      const code = $("#adminCode").value.trim();
+      if (code === ADMIN_SECRET){
+        STATE.admin = true;
+        $("#adminGate").classList.add("hidden");
+        $("#adminPanel").classList.remove("hidden");
+        showToast("مرحبًا", "تم تفعيل وضع الإدارة", "🛡️");
+      } else {
+        showToast("خطأ", "رمز الإدارة غير صحيح", "⛔");
+      }
+    });
+
+    $("#adminExit").addEventListener("click", ()=>{
+      STATE.admin = false;
+      MODALS.close("adminModal");
+      showToast("تم", "تم إيقاف وضع الإدارة", "🔒");
+    });
+        // =============== تصدير/استيراد Excel ===============
+    // نستخدم SheetJS من CDN
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module">
+    function toExportRows(data){
+      // نحول الهيكل إلى صفوف: Group, Subgroup, ID, Name, HashedPassword?
+      const rows = [["Group","Subgroup","ID","Name","PassHash"]];
+      for (const g of GROUPS){
+        for (let s=1; s<=SUB_COUNT; s++){
+          const items = data?.[g]?.[String(s)] || {};
+          for (const [id, rec] of Object.entries(items)){
+            rows.push([g, s, id, rec.name || "", rec.passHash || ""]);
+          }
+        }
+      }
+      return rows;
+    }
+
+    function fromImportRows(rows){
+      // نحول الصفوف إلى الهيكل الداخلي
+      const out = {};
+      ensureStructure(out);
+      const header = rows[0].map(h=> String(h||"").trim().toLowerCase());
+      const gi = header.indexOf("group");
+      const si = header.indexOf("subgroup");
+      const ii = header.indexOf("id");
+      const ni = header.indexOf("name");
+      const pi = header.indexOf("passhash");
+
+      for (let r=1; r<rows.length; r++){
+        const row = rows[r];
+        if (!row || row.length < 4) continue;
+        const g = String(row[gi]||"").toUpperCase();
+        const s = String(row[si]||"");
+        const id= String(row[ii]||"");
+        const name = String(row[ni]||"");
+        const passHash = row[pi] ? String(row[pi]) : "";
+        if (!GROUPS.includes(g)) continue;
+        const sNum = parseInt(s,10);
+        if (!(sNum>=1 && sNum<=SUB_COUNT)) continue;
+        out[g][String(sNum)][id] = { id, name, ...(passHash?{passHash}:{}) };
+      }
+      return out;
+    }
+
+    async function overwriteAll(data){
+      if (firebaseReady){
+        await set(ref(db, "students"), data);
+      } else {
+        localStorage.setItem("students", JSON.stringify(data));
+        // بث يدوي كي تُحدّث الواجهة في نفس التبويب
+        window.dispatchEvent(new StorageEvent("storage", { key: "students", newValue: JSON.stringify(data) }));
+      }
+    }
+
+    // تصدير
+    $("#exportBtn").addEventListener("click", async ()=>{
+      if (!STATE.admin){
+        showToast("ممنوع", "الميزة للإدارة فقط", "⛔");
+        return;
+      }
+      const data = await Storage.readAll();
+      const rows = toExportRows(ensureStructure(data));
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Students");
+      const fileName = "students_export.xlsx";
+      XLSX.writeFile(wb, fileName);
+      showToast("تم التصدير", "تم حفظ ملف Excel", "📤");
+    });
+
+    // استيراد
+    $("#importInput").addEventListener("change", async (e)=>{
+      if (!STATE.admin){
+        showToast("ممنوع", "الميزة للإدارة فقط", "⛔");
+        return;
+      }
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (ev)=>{
+        try {
+          const data = new Uint8Array(ev.target.result);
+          const wb = XLSX.read(data, { type: "array" });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+          const structured = ensureStructure(fromImportRows(rows));
+
+          // تحقّق من عدم تجاوز السعة لأي Subgroup
+          for (const g of GROUPS){
+            for (let s=1; s<=SUB_COUNT; s++){
+              const c = Object.keys(structured[g][String(s)]).length;
+              if (c > SUB_LIMIT){
+                showToast("خطأ", `تجاوز الحد (${SUB_LIMIT}) في ${g}/Subgroup ${s}`, "❌");
+                return;
+              }
+            }
+          }
+
+          await overwriteAll(structured);
+          showToast("تم الاستيراد", "تم تحديث جميع البيانات", "📥");
+          drawAll();
+        } catch (err){
+          console.error(err);
+          showToast("خطأ", "تعذر قراءة ملف Excel", "❌");
+        } finally {
+          e.target.value = "";
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    // اجعل تبويب A1 هو الظاهر افتراضياً
+    document.querySelector('[data-tab="A1"]').click();
+
+    // تحسينات: منع إدخال فراغات فقط، وقصّ المسافات
+    ["fullName","secret","editName","editNewSecret"].forEach(id=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("blur", ()=> el.value = el.value.trim());
+    });
+  </script>
+
+</body>
+</html>
+
