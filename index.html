@@ -802,10 +802,10 @@ try {
       MODALS.close("adminModal");
       showToast("تم", "تم إيقاف وضع الإدارة", "🔒");
     });
-        // =============== تصدير/استيراد Excel ===============
-    // نستخدم SheetJS من CDN
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+  <!-- =============== تصدير/استيراد Excel =============== -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <script type="module">
     function toExportRows(data){
       // نحول الهيكل إلى صفوف: Group, Subgroup, ID, Name, HashedPassword?
