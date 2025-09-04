@@ -329,22 +329,26 @@
     // محاولة تحميل Firebase من CDN
   </script>
   <script type="module">
-    // =============== Firebase إعداد ===============
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-    import { getDatabase, ref, onValue, set, update, remove, get, child } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getDatabase, ref, onValue, set, update, remove, get, child } 
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
-    // ضع إعداداتك هنا:
-    const firebaseConfig = {
-      apiKey: "REPLACE_ME",
-      authDomain: "REPLACE_ME.firebaseapp.com",
-      databaseURL: "https://REPLACE_ME-default-rtdb.firebaseio.com",
-      projectId: "REPLACE_ME",
-      storageBucket: "REPLACE_ME.appspot.com",
-      messagingSenderId: "REPLACE_ME",
-      appId: "REPLACE_ME"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCDZZqUzXRAwh3RKaGp1unIbUWYMWF2Q7s",
+    authDomain: "hammurabi-ccf6d.firebaseapp.com",
+    databaseURL: "https://hammurabi-ccf6d-default-rtdb.firebaseio.com",
+    projectId: "hammurabi-ccf6d",
+    storageBucket: "hammurabi-ccf6d.appspot.com",
+    messagingSenderId: "257971367886",
+    appId: "1:257971367886:web:761013b57defa59a3b459f",
+    measurementId: "G-KS3SWR8LYC"
+  };
 
-    let app, db, firebaseReady = false;
+  // Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+let firebaseReady = true;
+
 
     try {
       // إذا القيم ما تبدلت، اعتبر Firebase غير مُفعّل
