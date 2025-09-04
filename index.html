@@ -355,26 +355,19 @@
   };
 
   // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-let firebaseReady = true;
+let firebaseReady = false;
+let app, db;
 
+try {
+  app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+  firebaseReady = true;
+  console.log("Firebase ready ✅");
+} catch (e) {
+  console.warn("تعذر تهيئة Firebase. سيتم استخدام LocalStorage.", e);
+  firebaseReady = false;
+}
 
-    try {
-      // إذا القيم ما تبدلت، اعتبر Firebase غير مُفعّل
-      const looksConfigured = (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("REPLACE_ME"));
-      if (looksConfigured) {
-        app = initializeApp(firebaseConfig);
-        db = getDatabase(app);
-        firebaseReady = true;
-        console.log("Firebase ready ✅");
-      } else {
-        console.warn("Firebase غير مهيأ. سيتم استخدام LocalStorage.");
-      }
-    } catch (e) {
-      console.warn("تعذر تهيئة Firebase. سيتم استخدام LocalStorage.", e);
-      firebaseReady = false;
-    }
 
     // =============== ثابتات وهيكل البيانات ===============
     const GROUPS = ["A1","A2","B1","B2"];
