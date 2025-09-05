@@ -542,33 +542,27 @@
     </div>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCDZZqUzXRAwh3RKaGp1unIbUWYMWF2Q7s",
-            authDomain: "hammurabi-ccf6d.firebaseapp.com",
-            databaseURL: "https://hammurabi-ccf6d-default-rtdb.firebaseio.com",
-            projectId: "hammurabi-ccf6d",
-            storageBucket: "hammurabi-ccf6d.appspot.com",
-            messagingSenderId: "257971367886",
-            appId: "1:257971367886:web:761013b57defa59a3b459f",
-            measurementId: "G-KS3SWR8LYC"
-        };
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
 
-        // Initialize Firebase
-        let app, db;
-        let isFirebaseConnected = false;
+  const firebaseConfig = {
+    apiKey: "AIzaSyCDZZqUzXRAwh3RKaGp1unIbUWYMWF2Q7s",
+    authDomain: "hammurabi-ccf6d.firebaseapp.com",
+    databaseURL: "https://hammurabi-ccf6d-default-rtdb.firebaseio.com",
+    projectId: "hammurabi-ccf6d",
+    storageBucket: "hammurabi-ccf6d.appspot.com",
+    messagingSenderId: "257971367886",
+    appId: "1:257971367886:web:761013b57defa59a3b459f",
+    measurementId: "G-KS3SWR8LYC"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const analytics = getAnalytics(app);
         
-        try {
-            app = firebase.initializeApp(firebaseConfig);
-            db = firebase.database();
-            isFirebaseConnected = true;
-            console.log('Firebase متصل بنجاح');
-            updateConnectionStatus(true);
-        } catch (error) {
-            console.error('خطأ في الاتصال بـ Firebase:', error);
-            isFirebaseConnected = false;
-            updateConnectionStatus(false);
-        }
         
         // Update connection status indicator
         function updateConnectionStatus(connected) {
